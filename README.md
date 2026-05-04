@@ -42,7 +42,7 @@ Metodo più semplice — tramite interfaccia web:
 
 Dopo 1-2 minuti l'app sarà live su:
 ```
-https://TUO_USERNAME.github.io/aether/
+https://netslashdotflash.github.io/aether/
 ```
 
 ---
