@@ -72,10 +72,10 @@ const SHOP_ITEMS=[
 ];
 
 // ── STATE ────────────────────────────────────────
-function loadG(){try{const s=localStorage.getItem('aether_v4');return s?JSON.parse(s):null;}catch(e){return null;}}
-function saveG(){try{localStorage.setItem('aether_v4',JSON.stringify(G));}catch(e){}}
+function loadG(){return window.G||null;}
+function saveG(){if(window.saveToCloud)window.saveToCloud(G);try{localStorage.setItem('aether_v4_bk',JSON.stringify(G));}catch(e){}}
 
-let G=loadG()||newGame();
+let G=null; // initialized by window.startGame after Firebase auth
 function newGame(){return{phase:'egg',eggStart:Date.now(),eggDuration:7*24*3600*1000,eggTaps:0,speciesId:null,name:null,birthMs:null,currentForm:null,stage:'hatchling',hp:90,hunger:85,thirst:85,energy:90,boredom:10,isSleeping:false,sleepStart:null,sleepDuration:null,absence:null,coins:15,nextCoinMs:Date.now()+3600000,counts:{play:0,train:0,sleep:0,hunt:0,explore:0,meditate:0},cooldowns:{},unlockedTraitIds:[],evoLog:[],lastTickMs:Date.now()};}
 
 function getSp(){return BASE_SPECIES[G.speciesId]||BASE_SPECIES.luminfang;}
@@ -440,3 +440,19 @@ setInterval(gameTick,60000);
 setInterval(()=>{if(G.phase==='alive'){checkAbsenceReturn();renderActions();renderCreature();renderActivity();updateCoinTimer();}},15000);
 setInterval(()=>{if(G.phase==='alive')updateCoinTimer();},30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&G.phase==='alive')gameTick();});
+
+
+// ── FIREBASE BRIDGE ──────────────────────────────
+// Called by index.html AFTER Firebase loads the cloud save into window.G
+window.startGame = function() {
+  if (!window.G) {
+    try { const bk=localStorage.getItem('aether_v4_bk'); window.G=bk?JSON.parse(bk):null; } catch(e){}
+  }
+  G = window.G || newGame();
+  window.G = G;
+  boot();
+};
+
+// Expose helpers for profile modal
+window.getSp = getSp;
+window.getCurrentForm = getCurrentForm;
