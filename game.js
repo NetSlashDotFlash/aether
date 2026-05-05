@@ -223,7 +223,7 @@ function renderStates(){
   col.innerHTML=states.map(s=>{
     const pct=Math.max(0,Math.min(100,s.val));
     const color=s.bad?'#e05a6a':pct>60?'#00e5c8':'#c9a84c';
-    return `<div class="state-item${s.bad?' state-bad':''}"><span class="state-icon">${s.icon}</span><div class="state-bar-wrap"><div class="state-bar-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+    return `<div class="state-item${s.bad?' state-bad':''}"><span class="state-icon" style="color:${color}">${s.icon}</span><div class="state-bar-wrap"><div class="state-bar-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
   }).join('');
 }
 
