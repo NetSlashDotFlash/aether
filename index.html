@@ -364,6 +364,8 @@ window.loginWithGoogle = async () => {
 };
 
 window.doLogout = async () => {
+  // Clear in-memory state so next login loads fresh from cloud
+  window.G = null;
   await signOut(auth);
   closeProfile();
 };
@@ -375,7 +377,7 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('login-screen').classList.remove('on');
     syncDot('syncing');
     await loadCloud(user.uid);
-    window.startGame();          // defined in game.js
+    window.startGame(user.uid);  // pass uid to detect account switches
   } else {
     document.getElementById('login-screen').classList.add('on');
     document.getElementById('app').style.display = 'none';
@@ -390,14 +392,17 @@ async function loadCloud(uid) {
     const snap = await getDoc(doc(db, 'players', uid));
     if (snap.exists()) {
       const saved = snap.data().gameState;
-      if (saved) {
-        window.G = saved;
-        // keep lastTickMs so gameTick calculates elapsed time correctly
-      }
+      // Always overwrite — never reuse a previous session's data
+      window.G = saved || null;
+    } else {
+      // No save for this user yet — start fresh
+      window.G = null;
     }
     syncDot('ok');
   } catch(e) {
-    console.warn('Cloud load failed, using local:', e);
+    console.warn('Cloud load failed:', e);
+    // Clear on error to avoid mixing up accounts
+    window.G = null;
     syncDot('err');
   }
 }
@@ -406,6 +411,9 @@ async function loadCloud(uid) {
 window.saveToCloud = (gameState) => {
   const user = window._fbUser;
   if (!user) return;
+  // Safety check: never save if gameState belongs to another user
+  if (gameState.uid && gameState.uid !== user.uid) return;
+  gameState.uid = user.uid; // tag with current user
   syncDot('syncing');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
