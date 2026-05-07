@@ -137,16 +137,18 @@ function drawBg(t){ctx.clearRect(0,0,canvas.width,canvas.height);for(const s of 
 initCanvas();window.addEventListener('resize',initCanvas);requestAnimationFrame(t=>drawBg(t/1000));
 
 // ── SPLASH ───────────────────────────────────────
-// Splash: fade out after 1.4s, then show login screen
-// Firebase will call window.startGame() when ready
+// Splash fades after 1.4s — login screen is already visible underneath
 setTimeout(() => {
-  const splash = document.getElementById('splash');
-  if (splash) {
-    splash.classList.add('fade');
-    setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 900);
-  }
-  // Show login screen — Firebase onAuthStateChanged will hide it if already logged in
-  document.getElementById('login-screen').classList.add('on');
+  try {
+    const splash = document.getElementById('splash');
+    if (splash) {
+      splash.style.opacity = '0';
+      splash.style.pointerEvents = 'none';
+      setTimeout(() => {
+        try { splash.parentNode.removeChild(splash); } catch(e) {}
+      }, 1000);
+    }
+  } catch(e) { console.error('Splash error:', e); }
 }, 1400);
 
 function boot(){
@@ -600,13 +602,13 @@ const RACE_TRAITS = {
     {id:'vol_fireblood',   name:'Sangue di Fuoco',     icon:'🔴', cat:'resistenza', color:'#ff4422', bg:'rgba(255,68,34,.1)',   desc:'Il danno da fuoco lo guarisce invece di ferirlo.', unlock:{trigger:'hunt', minCount:20, prob:.05}},
     {id:'vol_ash',         name:'Pelle di Cenere',     icon:'⬛', cat:'resistenza', color:'#aa8866', bg:'rgba(170,136,102,.1)', desc:'Assorbe il 20% dei danni fisici.', unlock:{trigger:'train', minCount:15, prob:.07}},
     {id:'vol_intimidate',  name:'Ruggito Primordiale', icon:'😤', cat:'abilita',   color:'#ff5500', bg:'rgba(255,85,0,.1)',    desc:'Intimorisce le prede. Bonus in caccia, malus in esplorazione.', unlock:{trigger:'play', minCount:20, prob:.06}},
-    {id:'vol_temper',      name:'Temperamento Caotico',icon:'⚡', cat:'fobia',     color:'#ff8833', bg:'rgba(255,136,51,.1)',  desc:'Ha scatti d'ira casuali. Ogni tanto rifiuta i comandi.', unlock:{trigger:'random', prob:.04}},
+    {id:'vol_temper',      name:'Temperamento Caotico',icon:'⚡', cat:'fobia',     color:'#ff8833', bg:'rgba(255,136,51,.1)',  desc:'Ha scatti d\'ira casuali. Ogni tanto rifiuta i comandi.', unlock:{trigger:'random', prob:.04}},
   ],
   // UMBRASEL exclusive
   umbrasel: [
     {id:'umb_precog',      name:'Preveggenza',         icon:'🔮', cat:'abilita',   color:'#bb99ff', bg:'rgba(187,153,255,.1)', desc:'Anticipa eventi casuali. Riduce i malus da caccia ed esplorazione.', unlock:{trigger:'meditate', minCount:8, prob:.09}},
     {id:'umb_phobia_all',  name:'Paranoia',            icon:'👁', cat:'fobia',     color:'#9944aa', bg:'rgba(153,68,170,.1)',  desc:'Ha paura di tutto. Ogni azione ha 10% di causare stress.', unlock:{trigger:'random', prob:.03}},
-    {id:'umb_shadow',      name:'Corpo d'Ombra',      icon:'🌑', cat:'abilita',   color:'#8855cc', bg:'rgba(136,85,204,.1)',  desc:'Può attraversare oggetti solidi. Bonus in esplorazione.', unlock:{trigger:'explore', minCount:10, prob:.07}},
+    {id:'umb_shadow',      name:'Corpo d\'\1mbra',      icon:'🌑', cat:'abilita',   color:'#8855cc', bg:'rgba(136,85,204,.1)',  desc:'Può attraversare oggetti solidi. Bonus in esplorazione.', unlock:{trigger:'explore', minCount:10, prob:.07}},
     {id:'umb_telepathy',   name:'Telepatia',           icon:'📡', cat:'abilita',   color:'#aa77ee', bg:'rgba(170,119,238,.1)', desc:'Percepisce i pensieri altrui. Intelligenza cresce più velocemente.', unlock:{trigger:'meditate', minCount:20, prob:.05}},
     {id:'umb_invisible',   name:'Invisibilità Parziale',icon:'👻',cat:'abilita',   color:'#ccaaff', bg:'rgba(204,170,255,.1)', desc:'Diventa semi-trasparente sotto stress. Bonus in fuga.', unlock:{trigger:'sleep', minCount:15, prob:.06}},
   ],
@@ -638,7 +640,7 @@ const RACE_TRAITS = {
   geolem: [
     {id:'geo_regen',       name:'Rigenerazione Litica', icon:'🪨', cat:'abilita',   color:'#ccaa77', bg:'rgba(204,170,119,.1)', desc:'Le crepe nella pietra si chiudono lentamente. HP si rigenera molto lento ma costante.', unlock:{trigger:'sleep', minCount:12, prob:.08}},
     {id:'geo_tremor',      name:'Passo Sismico',        icon:'💥', cat:'abilita',   color:'#aa8855', bg:'rgba(170,136,85,.1)',  desc:'I passi causano piccole scosse. Bonus in combattimento.', unlock:{trigger:'train', minCount:15, prob:.07}},
-    {id:'geo_magnetism',   name:'Magnetismo Naturale',  icon:'🧲', cat:'abilita',   color:'#bb9966', bg:'rgba(187,153,102,.1)', desc:'Attrae risorse metalliche durante l'esplorazione.', unlock:{trigger:'explore', minCount:10, prob:.08}},
+    {id:'geo_magnetism',   name:'Magnetismo Naturale',  icon:'🧲', cat:'abilita',   color:'#bb9966', bg:'rgba(187,153,102,.1)', desc:'Attrae risorse metalliche durante l\'\1splorazione.', unlock:{trigger:'explore', minCount:10, prob:.08}},
     {id:'geo_slow',        name:'Inerzia Colossale',    icon:'🐌', cat:'vulnerabilita',color:'#998866',bg:'rgba(153,136,102,.1)',desc:'Si muove lentamente. Alcune azioni richiedono più energia.', unlock:{trigger:'random', prob:.04}},
     {id:'geo_crystal_core',name:'Nucleo Cristallino',   icon:'💎', cat:'resistenza', color:'#ddcc88', bg:'rgba(221,204,136,.1)', desc:'Un nucleo di cristallo lo protegge. Riduce i danni subiti del 25%.', unlock:{trigger:'sleep', minCount:35, prob:.03}},
   ],
@@ -648,19 +650,19 @@ const RACE_TRAITS = {
     {id:'zep_adhd',        name:'Iperattività',         icon:'🌀', cat:'fobia',     color:'#99bbee', bg:'rgba(153,187,238,.1)', desc:'Non riesce a stare fermo. La noia cresce il triplo del normale.', unlock:{trigger:'random', prob:.045}},
     {id:'zep_lightning',   name:'Conduzione Elettrica', icon:'⚡', cat:'abilita',   color:'#aaccff', bg:'rgba(170,204,255,.1)', desc:'Accumula elettricità statica. Bonus contro nemici metallici.', unlock:{trigger:'train', minCount:12, prob:.07}},
     {id:'zep_weather',     name:'Meteoropatia',         icon:'🌪', cat:'abilita',   color:'#88aadd', bg:'rgba(136,170,221,.1)', desc:'Sente i cambiamenti atmosferici. Previsione eventi casuali.', unlock:{trigger:'sleep', minCount:10, prob:.08}},
-    {id:'zep_fragile',     name:'Costituzione Aerea',   icon:'🍃', cat:'vulnerabilita',color:'#aabbcc',bg:'rgba(170,187,204,.1)',desc:'Leggero come l'aria. Subisce più danni fisici.', unlock:{trigger:'random', prob:.035}},
+    {id:'zep_fragile',     name:'Costituzione Aerea',   icon:'🍃', cat:'vulnerabilita',color:'#aabbcc',bg:'rgba(170,187,204,.1)',desc:'Leggero come l\'\1ria. Subisce più danni fisici.', unlock:{trigger:'random', prob:.035}},
   ],
   // MYCELITH exclusive
   mycelith: [
     {id:'myc_spore_heal',  name:'Spore Curative',      icon:'🟣', cat:'abilita',   color:'#dd99ff', bg:'rgba(221,153,255,.1)', desc:'Rilascia spore che guariscono lentamente nel tempo.', unlock:{trigger:'sleep', minCount:10, prob:.09}},
-    {id:'myc_network',     name:'Rete Miceliare',      icon:'🕸', cat:'abilita',   color:'#cc88ff', bg:'rgba(204,136,255,.1)', desc:'Comunica con altri organismi. Riceve informazioni sull'ambiente.', unlock:{trigger:'explore', minCount:8, prob:.08}},
+    {id:'myc_network',     name:'Rete Miceliare',      icon:'🕸', cat:'abilita',   color:'#cc88ff', bg:'rgba(204,136,255,.1)', desc:'Comunica con altri organismi. Riceve informazioni sull\'\1mbiente.', unlock:{trigger:'explore', minCount:8, prob:.08}},
     {id:'myc_toxic_cloud', name:'Nube Tossica',        icon:'☁', cat:'abilita',   color:'#bb77ee', bg:'rgba(187,119,238,.1)', desc:'Emette una nube di spore velenose quando attaccata.', unlock:{trigger:'hunt', minCount:8, prob:.08}},
     {id:'myc_rot',         name:'Decomposizione',      icon:'💀', cat:'vulnerabilita',color:'#9966bb',bg:'rgba(153,102,187,.1)',desc:'Si decompone lentamente. Perde HP passivamente se non dorme.', unlock:{trigger:'random', prob:.03}},
     {id:'myc_biolum',      name:'Bioluminescenza Fungina',icon:'🌟',cat:'abilita',  color:'#ee88ff', bg:'rgba(238,136,255,.1)', desc:'Brilla al buio. Può spaventare i predatori notturni.', unlock:{trigger:'sleep', minCount:20, prob:.06}},
   ],
   // STORMKIN exclusive
   stormkin: [
-    {id:'sto_overcharge',  name:'Sovraccarico',        icon:'⚡', cat:'abilita',   color:'#ffff44', bg:'rgba(255,255,68,.1)',  desc:'Può scaricare tutta l'energia accumulata in un attacco devastante.', unlock:{trigger:'train', minCount:12, prob:.08}},
+    {id:'sto_overcharge',  name:'Sovraccarico',        icon:'⚡', cat:'abilita',   color:'#ffff44', bg:'rgba(255,255,68,.1)',  desc:'Può scaricare tutta l\'\1nergia accumulata in un attacco devastante.', unlock:{trigger:'train', minCount:12, prob:.08}},
     {id:'sto_emp',         name:'Impulso Elettromagnetico',icon:'📡',cat:'abilita', color:'#eedd33', bg:'rgba(238,221,51,.1)',  desc:'Disabilita temporaneamente i meccanismi. Bonus in esplorazione urbana.', unlock:{trigger:'explore', minCount:10, prob:.07}},
     {id:'sto_static_fur',  name:'Pelo Statico',        icon:'🦔', cat:'resistenza', color:'#ffee55', bg:'rgba(255,238,85,.1)',  desc:'Il pelo elettrificato respinge gli attacchi fisici leggeri.', unlock:{trigger:'sleep', minCount:15, prob:.07}},
     {id:'sto_storm_fear',  name:'Fulminofobia',        icon:'🌩', cat:'fobia',     color:'#ddcc44', bg:'rgba(221,204,68,.1)',  desc:'Paradossalmente teme i temporali. Sotto la pioggia perde energia.', unlock:{trigger:'random', prob:.04}},
@@ -676,15 +678,15 @@ const STAGE_TRAITS = {
     {id:'stg_fast_learn',  name:'Apprendimento Rapido', icon:'📚', cat:'abilita',   color:'#77bbcc', bg:'rgba(119,187,204,.1)', desc:'Da giovane impara più in fretta. Tratti si sbloccano 20% più spesso.', unlock:{trigger:'train', minCount:8, prob:.10}},
   ],
   adult: [
-    {id:'stg_experience',  name:'Esperienza Veterana',  icon:'⚔', cat:'abilita',   color:'#ddaa55', bg:'rgba(221,170,85,.1)',  desc:'L'esperienza riduce i malus da caccia del 30%.', unlock:{trigger:'hunt', minCount:15, prob:.09}},
+    {id:'stg_experience',  name:'Esperienza Veterana',  icon:'⚔', cat:'abilita',   color:'#ddaa55', bg:'rgba(221,170,85,.1)',  desc:'L\'esperienza riduce i malus da caccia del 30%.', unlock:{trigger:'hunt', minCount:15, prob:.09}},
     {id:'stg_wisdom',      name:'Saggezza Matura',      icon:'🦉', cat:'abilita',   color:'#bb9944', bg:'rgba(187,153,68,.1)',  desc:'La mente matura. Medita con doppia efficienza.', unlock:{trigger:'meditate', minCount:15, prob:.08}},
-    {id:'stg_chronic_pain',name:'Dolori Cronici',       icon:'💢', cat:'vulnerabilita',color:'#cc8877',bg:'rgba(204,136,119,.1)',desc:'Con l'età arrivano i dolori. HP massimo ridotto di 10.', unlock:{trigger:'random', prob:.04}},
+    {id:'stg_chronic_pain',name:'Dolori Cronici',       icon:'💢', cat:'vulnerabilita',color:'#cc8877',bg:'rgba(204,136,119,.1)',desc:'Con l\'\1tà arrivano i dolori. HP massimo ridotto di 10.', unlock:{trigger:'random', prob:.04}},
     {id:'stg_territorial', name:'Territorialità',       icon:'🏴', cat:'abilita',   color:'#aa8833', bg:'rgba(170,136,51,.1)',  desc:'Difende il suo spazio. Bonus in difesa, malus in esplorazione.', unlock:{trigger:'sleep', minCount:25, prob:.07}},
   ],
   elder: [
     {id:'stg_legend',      name:'Aura Leggendaria',     icon:'👑', cat:'abilita',   color:'#ffcc44', bg:'rgba(255,204,68,.1)',  desc:'La sua sola presenza intimorisce. Tutti i tratti potenziati del 10%.', unlock:{trigger:'random', prob:.08}},
     {id:'stg_ancient_mem', name:'Memoria Ancestrale',   icon:'📜', cat:'abilita',   color:'#ddbb33', bg:'rgba(221,187,51,.1)',  desc:'Ricorda tutto. Non perde mai le abilità apprese.', unlock:{trigger:'sleep', minCount:50, prob:.06}},
-    {id:'stg_frail',       name:'Fragilità Senile',     icon:'🦴', cat:'vulnerabilita',color:'#aaaaaa',bg:'rgba(170,170,170,.1)',desc:'L'età pesa. Energia si rigenera più lentamente.', unlock:{trigger:'random', prob:.06}},
+    {id:'stg_frail',       name:'Fragilità Senile',     icon:'🦴', cat:'vulnerabilita',color:'#aaaaaa',bg:'rgba(170,170,170,.1)',desc:'L\'età pesa. Energia si rigenera più lentamente.', unlock:{trigger:'random', prob:.06}},
   ],
 };
 
