@@ -137,9 +137,20 @@ function drawBg(t){ctx.clearRect(0,0,canvas.width,canvas.height);for(const s of 
 initCanvas();window.addEventListener('resize',initCanvas);requestAnimationFrame(t=>drawBg(t/1000));
 
 // ── SPLASH ───────────────────────────────────────
-setTimeout(()=>{document.getElementById('splash').classList.add('fade');setTimeout(()=>{const s=document.getElementById('splash');if(s)s.remove();},900);boot();},1400);
+// Splash fades out automatically — boot() is called by Firebase after login
+setTimeout(()=>{
+  document.getElementById('splash').classList.add('fade');
+  setTimeout(()=>{const s=document.getElementById('splash');if(s)s.remove();},900);
+  // If Firebase hasn't triggered onAuthStateChanged yet, show login screen
+  setTimeout(()=>{
+    if(!window._fbUser && G===null){
+      document.getElementById('login-screen').classList.add('on');
+    }
+  },3000);
+},1400);
 
 function boot(){
+  if(!G){console.error('boot() called with null G');return;}
   if(G.phase==='egg'){document.getElementById('egg-view').style.display='flex';document.getElementById('app').style.display='none';updateEggUI();setInterval(updateEggUI,20000);}
   else{document.getElementById('egg-view').style.display='none';document.getElementById('app').style.display='grid';initMainApp();}
   checkInstallPrompt();
@@ -546,13 +557,19 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&G.phase==
 
 // ── FIREBASE BRIDGE ──────────────────────────────
 // Called by index.html AFTER Firebase loads the cloud save into window.G
-window.startGame = function() {
-  if (!window.G) {
-    try { const bk=localStorage.getItem('aether_v4_bk'); window.G=bk?JSON.parse(bk):null; } catch(e){}
-  }
-  // Migrate save to current format (safe for both old and new saves)
+window.startGame = function(uid) {
+  // window.G is set exclusively by loadCloud for this uid
+  // Do NOT fall back to localStorage — it may belong to a different user
+  // Migrate and start
   G = migrateG(window.G) || newGame();
   window.G = G;
+  // Tag the save with the current user uid so we can detect mismatches
+  if (uid && G.uid && G.uid !== uid) {
+    // This save belongs to someone else — start fresh
+    G = newGame();
+    window.G = G;
+  }
+  if (uid) G.uid = uid;
   boot();
 };
 
