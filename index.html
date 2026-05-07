@@ -322,6 +322,9 @@ body{width:100%;height:100vh;height:-webkit-fill-available;overflow:hidden;backg
   <div id="logout-btn" onclick="doLogout()">DISCONNETTI</div>
 </div>
 
+<!-- DEBUG -->
+<div id="debug" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,.85);color:#00e5c8;font-size:11px;padding:6px 10px;font-family:monospace;max-height:120px;overflow-y:auto"></div>
+
 <!-- FIREBASE SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
@@ -371,14 +374,34 @@ window.doLogout = async () => {
 };
 
 // ── AUTH STATE ───────────────────────────────────
+function dbg(msg) {
+  console.log('[AETHER]', msg);
+  const el = document.getElementById('debug');
+  if (el) el.innerHTML += msg + '<br>';
+}
+
 onAuthStateChanged(auth, async (user) => {
+  dbg('onAuthStateChanged fired. user=' + (user ? user.email : 'null'));
   window._fbUser = user;
   if (user) {
     document.getElementById('login-screen').classList.remove('on');
     syncDot('syncing');
-    await loadCloud(user.uid);
-    window.startGame(user.uid);  // pass uid to detect account switches
+    dbg('Loading cloud save for ' + user.uid);
+    try {
+      await loadCloud(user.uid);
+      dbg('Cloud loaded. window.G=' + (window.G ? window.G.phase : 'null'));
+    } catch(e) {
+      dbg('loadCloud ERROR: ' + e.message);
+    }
+    dbg('Calling startGame...');
+    try {
+      window.startGame(user.uid);
+      dbg('startGame done.');
+    } catch(e) {
+      dbg('startGame ERROR: ' + e.message);
+    }
   } else {
+    dbg('No user — showing login screen');
     document.getElementById('login-screen').classList.add('on');
     document.getElementById('app').style.display = 'none';
     document.getElementById('egg-view').style.display = 'none';

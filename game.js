@@ -558,19 +558,23 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&G.phase==
 // ── FIREBASE BRIDGE ──────────────────────────────
 // Called by index.html AFTER Firebase loads the cloud save into window.G
 window.startGame = function(uid) {
-  // window.G is set exclusively by loadCloud for this uid
-  // Do NOT fall back to localStorage — it may belong to a different user
-  // Migrate and start
-  G = migrateG(window.G) || newGame();
-  window.G = G;
-  // Tag the save with the current user uid so we can detect mismatches
-  if (uid && G.uid && G.uid !== uid) {
-    // This save belongs to someone else — start fresh
-    G = newGame();
+  function dbg(m){console.log('[startGame]',m);const el=document.getElementById('debug');if(el)el.innerHTML+='[game] '+m+'<br>';}
+  dbg('called. uid='+uid+' window.G='+(window.G?window.G.phase:'null'));
+  try {
+    G = migrateG(window.G) || newGame();
     window.G = G;
+    if (uid && G.uid && G.uid !== uid) {
+      dbg('UID mismatch! Resetting. G.uid='+G.uid+' uid='+uid);
+      G = newGame();
+      window.G = G;
+    }
+    if (uid) G.uid = uid;
+    dbg('G.phase='+G.phase+' calling boot()');
+    boot();
+    dbg('boot() returned OK');
+  } catch(e) {
+    dbg('ERROR: '+e.message+' '+e.stack);
   }
-  if (uid) G.uid = uid;
-  boot();
 };
 
 // Expose helpers for profile modal
