@@ -328,14 +328,14 @@ body{width:100%;height:100vh;height:-webkit-fill-available;overflow:hidden;backg
 <!-- FIREBASE SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc }
   from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD8xI2Bu5AFptlYXkbn-mY5Kb6KpLc1y_g",
-  authDomain: "netslashdotflash.github.io",
+  authDomain: "aether-game-6d0ed.firebaseapp.com",
   projectId: "aether-game-6d0ed",
   storageBucket: "aether-game-6d0ed.firebasestorage.app",
   messagingSenderId: "439384968477",
@@ -360,9 +360,10 @@ window.setSyncDot = syncDot;
 window.loginWithGoogle = async () => {
   document.getElementById('login-error').textContent = '';
   try {
-    await signInWithPopup(auth, provider);
+    // Use redirect (more reliable on GitHub Pages and mobile)
+    await signInWithRedirect(auth, provider);
   } catch(e) {
-    document.getElementById('login-error').textContent = 'Accesso non riuscito. Riprova.';
+    document.getElementById('login-error').textContent = 'Accesso non riuscito: ' + e.message;
   }
 };
 
@@ -379,6 +380,17 @@ function dbg(msg) {
   const el = document.getElementById('debug');
   if (el) el.innerHTML += msg + '<br>';
 }
+
+// Handle redirect result first (called after Google redirect back to app)
+getRedirectResult(auth).then(result => {
+  if (result && result.user) {
+    dbg('Redirect result: got user ' + result.user.email);
+  } else {
+    dbg('Redirect result: no user (first load or popup flow)');
+  }
+}).catch(e => {
+  dbg('Redirect result error: ' + e.message);
+});
 
 onAuthStateChanged(auth, async (user) => {
   dbg('onAuthStateChanged fired. user=' + (user ? user.email : 'null'));
