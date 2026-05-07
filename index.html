@@ -27,14 +27,14 @@ body{width:100%;height:100vh;height:-webkit-fill-available;overflow:hidden;backg
 @keyframes ptA{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0)}}
 
 /* SPLASH */
-#splash{position:fixed;inset:0;z-index:700;background:radial-gradient(ellipse at 50% 40%,#060d18,#010205);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .9s}
+#splash{position:fixed;inset:0;z-index:800;background:radial-gradient(ellipse at 50% 40%,#060d18,#010205);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .9s}
 #splash.fade{opacity:0;pointer-events:none}
 #splash-logo{font-family:'Cinzel',serif;font-size:36px;font-weight:700;color:var(--teal);letter-spacing:8px;text-shadow:0 0 40px var(--teal);margin-bottom:8px}
 #splash-sub{font-size:10px;color:var(--fog2);letter-spacing:6px;text-transform:uppercase;opacity:.6}
 
 /* LOGIN */
-#login-screen{position:fixed;inset:0;z-index:500;background:radial-gradient(ellipse at 50% 40%,#060d18,#010205);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px}
-#login-screen.on{display:flex}
+#login-screen{position:fixed;inset:0;z-index:500;background:radial-gradient(ellipse at 50% 40%,#060d18,#010205);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px}
+/* login-screen always flex by default */
 #login-logo{font-family:'Cinzel',serif;font-size:32px;font-weight:700;color:var(--teal);letter-spacing:8px;text-shadow:0 0 40px var(--teal);margin-bottom:6px}
 #login-tagline{font-size:11px;color:var(--fog2);letter-spacing:4px;margin-bottom:56px;opacity:.6}
 #login-card{width:100%;max-width:300px;text-align:center}
