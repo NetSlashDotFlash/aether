@@ -137,17 +137,17 @@ function drawBg(t){ctx.clearRect(0,0,canvas.width,canvas.height);for(const s of 
 initCanvas();window.addEventListener('resize',initCanvas);requestAnimationFrame(t=>drawBg(t/1000));
 
 // ── SPLASH ───────────────────────────────────────
-// Splash fades out automatically — boot() is called by Firebase after login
-setTimeout(()=>{
-  document.getElementById('splash').classList.add('fade');
-  setTimeout(()=>{const s=document.getElementById('splash');if(s)s.remove();},900);
-  // If Firebase hasn't triggered onAuthStateChanged yet, show login screen
-  setTimeout(()=>{
-    if(!window._fbUser && G===null){
-      document.getElementById('login-screen').classList.add('on');
-    }
-  },3000);
-},1400);
+// Splash: fade out after 1.4s, then show login screen
+// Firebase will call window.startGame() when ready
+setTimeout(() => {
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.classList.add('fade');
+    setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 900);
+  }
+  // Show login screen — Firebase onAuthStateChanged will hide it if already logged in
+  document.getElementById('login-screen').classList.add('on');
+}, 1400);
 
 function boot(){
   if(!G){console.error('boot() called with null G');return;}

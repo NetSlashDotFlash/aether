@@ -393,28 +393,18 @@ getRedirectResult(auth).then(result => {
 });
 
 onAuthStateChanged(auth, async (user) => {
-  dbg('onAuthStateChanged fired. user=' + (user ? user.email : 'null'));
+  dbg('onAuthStateChanged: user=' + (user ? user.email : 'null'));
   window._fbUser = user;
   if (user) {
-    document.getElementById('login-screen').classList.remove('on');
+    dbg('Logged in — loading save...');
+    document.getElementById('login-screen').style.display = 'none';
     syncDot('syncing');
-    dbg('Loading cloud save for ' + user.uid);
-    try {
-      await loadCloud(user.uid);
-      dbg('Cloud loaded. window.G=' + (window.G ? window.G.phase : 'null'));
-    } catch(e) {
-      dbg('loadCloud ERROR: ' + e.message);
-    }
-    dbg('Calling startGame...');
-    try {
-      window.startGame(user.uid);
-      dbg('startGame done.');
-    } catch(e) {
-      dbg('startGame ERROR: ' + e.message);
-    }
+    try { await loadCloud(user.uid); } catch(e) { dbg('loadCloud error: '+e.message); }
+    dbg('G.phase=' + (window.G ? window.G.phase : 'null'));
+    try { window.startGame(user.uid); } catch(e) { dbg('startGame error: '+e.message); }
   } else {
-    dbg('No user — showing login screen');
-    document.getElementById('login-screen').classList.add('on');
+    dbg('Not logged in — showing login screen');
+    document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
     document.getElementById('egg-view').style.display = 'none';
     syncDot('err');
