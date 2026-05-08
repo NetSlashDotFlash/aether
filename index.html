@@ -27,14 +27,14 @@ body{width:100%;height:100vh;height:-webkit-fill-available;overflow:hidden;backg
 @keyframes ptA{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0)}}
 
 /* SPLASH */
-#splash{position:fixed;inset:0;z-index:800;background:radial-gradient(ellipse at 50% 40%,#060d18,#010205);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .9s}
+#splash{position:fixed;inset:0;z-index:700;background:radial-gradient(ellipse at 50% 40%,#060d18,#010205);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .9s}
 #splash.fade{opacity:0;pointer-events:none}
 #splash-logo{font-family:'Cinzel',serif;font-size:36px;font-weight:700;color:var(--teal);letter-spacing:8px;text-shadow:0 0 40px var(--teal);margin-bottom:8px}
 #splash-sub{font-size:10px;color:var(--fog2);letter-spacing:6px;text-transform:uppercase;opacity:.6}
 
 /* LOGIN */
-#login-screen{position:fixed;inset:0;z-index:500;background:radial-gradient(ellipse at 50% 40%,#060d18,#010205);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px}
-/* login-screen always flex by default */
+#login-screen{position:fixed;inset:0;z-index:500;background:radial-gradient(ellipse at 50% 40%,#060d18,#010205);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px}
+#login-screen.on{display:flex}
 #login-logo{font-family:'Cinzel',serif;font-size:32px;font-weight:700;color:var(--teal);letter-spacing:8px;text-shadow:0 0 40px var(--teal);margin-bottom:6px}
 #login-tagline{font-size:11px;color:var(--fog2);letter-spacing:4px;margin-bottom:56px;opacity:.6}
 #login-card{width:100%;max-width:300px;text-align:center}
@@ -322,13 +322,10 @@ body{width:100%;height:100vh;height:-webkit-fill-available;overflow:hidden;backg
   <div id="logout-btn" onclick="doLogout()">DISCONNETTI</div>
 </div>
 
-<!-- DEBUG -->
-<div id="debug" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,.85);color:#00e5c8;font-size:11px;padding:6px 10px;font-family:monospace;max-height:120px;overflow-y:auto"></div>
-
 <!-- FIREBASE SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc }
   from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
@@ -360,51 +357,27 @@ window.setSyncDot = syncDot;
 window.loginWithGoogle = async () => {
   document.getElementById('login-error').textContent = '';
   try {
-    // Use redirect (more reliable on GitHub Pages and mobile)
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider);
   } catch(e) {
-    document.getElementById('login-error').textContent = 'Accesso non riuscito: ' + e.message;
+    document.getElementById('login-error').textContent = 'Accesso non riuscito. Riprova.';
   }
 };
 
 window.doLogout = async () => {
-  // Clear in-memory state so next login loads fresh from cloud
-  window.G = null;
   await signOut(auth);
   closeProfile();
 };
 
 // ── AUTH STATE ───────────────────────────────────
-function dbg(msg) {
-  console.log('[AETHER]', msg);
-  const el = document.getElementById('debug');
-  if (el) el.innerHTML += msg + '<br>';
-}
-
-// Handle redirect result first (called after Google redirect back to app)
-getRedirectResult(auth).then(result => {
-  if (result && result.user) {
-    dbg('Redirect result: got user ' + result.user.email);
-  } else {
-    dbg('Redirect result: no user (first load or popup flow)');
-  }
-}).catch(e => {
-  dbg('Redirect result error: ' + e.message);
-});
-
 onAuthStateChanged(auth, async (user) => {
-  dbg('onAuthStateChanged: user=' + (user ? user.email : 'null'));
   window._fbUser = user;
   if (user) {
-    dbg('Logged in — loading save...');
-    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('login-screen').classList.remove('on');
     syncDot('syncing');
-    try { await loadCloud(user.uid); } catch(e) { dbg('loadCloud error: '+e.message); }
-    dbg('G.phase=' + (window.G ? window.G.phase : 'null'));
-    try { window.startGame(user.uid); } catch(e) { dbg('startGame error: '+e.message); }
+    await loadCloud(user.uid);
+    window.startGame();          // defined in game.js
   } else {
-    dbg('Not logged in — showing login screen');
-    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-screen').classList.add('on');
     document.getElementById('app').style.display = 'none';
     document.getElementById('egg-view').style.display = 'none';
     syncDot('err');
@@ -417,17 +390,14 @@ async function loadCloud(uid) {
     const snap = await getDoc(doc(db, 'players', uid));
     if (snap.exists()) {
       const saved = snap.data().gameState;
-      // Always overwrite — never reuse a previous session's data
-      window.G = saved || null;
-    } else {
-      // No save for this user yet — start fresh
-      window.G = null;
+      if (saved) {
+        window.G = saved;
+        // keep lastTickMs so gameTick calculates elapsed time correctly
+      }
     }
     syncDot('ok');
   } catch(e) {
-    console.warn('Cloud load failed:', e);
-    // Clear on error to avoid mixing up accounts
-    window.G = null;
+    console.warn('Cloud load failed, using local:', e);
     syncDot('err');
   }
 }
@@ -436,9 +406,6 @@ async function loadCloud(uid) {
 window.saveToCloud = (gameState) => {
   const user = window._fbUser;
   if (!user) return;
-  // Safety check: never save if gameState belongs to another user
-  if (gameState.uid && gameState.uid !== user.uid) return;
-  gameState.uid = user.uid; // tag with current user
   syncDot('syncing');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
