@@ -1,12 +1,12 @@
 // ÆTHER Service Worker
-const CACHE = 'aether-v1';
+const CACHE = 'aether-v2';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/game.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/aether/',
+  '/aether/index.html',
+  '/aether/game.js',
+  '/aether/manifest.json',
+  '/aether/icons/icon-192.png',
+  '/aether/icons/icon-512.png',
 ];
 
 self.addEventListener('install', e => {

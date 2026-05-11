@@ -377,6 +377,9 @@ onAuthStateChanged(auth, async (user) => {
     await loadCloud(user.uid);
     window.startGame();          // defined in game.js
   } else {
+    // Fade splash then show login screen
+    const sp = document.getElementById('splash');
+    if (sp) { sp.classList.add('fade'); setTimeout(()=>sp.remove(), 900); }
     document.getElementById('login-screen').classList.add('on');
     document.getElementById('app').style.display = 'none';
     document.getElementById('egg-view').style.display = 'none';

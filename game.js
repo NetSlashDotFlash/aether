@@ -91,7 +91,7 @@ function drawBg(t){ctx.clearRect(0,0,canvas.width,canvas.height);for(const s of 
 initCanvas();window.addEventListener('resize',initCanvas);requestAnimationFrame(t=>drawBg(t/1000));
 
 // ── SPLASH ───────────────────────────────────────
-setTimeout(()=>{document.getElementById('splash').classList.add('fade');setTimeout(()=>{const s=document.getElementById('splash');if(s)s.remove();},900);boot();},1400);
+// Boot is triggered by window.startGame() after Firebase auth
 
 function boot(){
   if(G.phase==='egg'){document.getElementById('egg-view').style.display='flex';document.getElementById('app').style.display='none';updateEggUI();setInterval(updateEggUI,20000);}
@@ -223,7 +223,7 @@ function renderStates(){
   col.innerHTML=states.map(s=>{
     const pct=Math.max(0,Math.min(100,s.val));
     const color=s.bad?'#e05a6a':pct>60?'#00e5c8':'#c9a84c';
-    return `<div class="state-item${s.bad?' state-bad':''}"><span class="state-icon">${s.icon}</span><div class="state-bar-wrap"><div class="state-bar-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+    return `<div class="state-item${s.bad?' state-bad':''}"><span class="state-icon" style="color:${color}">${s.icon}</span><div class="state-bar-wrap"><div class="state-bar-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
   }).join('');
 }
 
@@ -305,13 +305,19 @@ function doAction(act){
 
 function putToSleep(){
   if(G.isSleeping||isAbsent())return;
-  const sp=getSp();const hrs=sp.energyRate>2.0?7:8;
+  const sp=getSp();
+  const enR=sp.energyRate<1.5?14:sp.energyRate<2.5?11:8;
+  const hrs=Math.max(3,Math.min(10,Math.max(20,100-G.energy)/enR));
   G.isSleeping=true;G.sleepStart=Date.now();G.sleepDuration=hrs*3600000;
-  G.counts.sleep=(G.counts.sleep||0)+1;setCd('sleep',hrs+2);
-  saveG();setNotif(`${G.name} si è addormentato. Si sveglierà tra ${hrs}h.`);
+  G.counts.sleep=(G.counts.sleep||0)+1;setCd('sleep',Math.ceil(hrs)+3);
+  saveG();setNotif(G.name+' si è addormentato. Si sveglierà tra ~'+Math.round(hrs)+'h.');
   tryUnlock('sleep');checkEvolution();renderAll();
 }
-function wakeUp(){G.isSleeping=false;G.sleepStart=null;G.sleepDuration=null;saveG();setNotif(`${G.name} si è svegliato.`);renderAll();}
+function wakeUp(){
+  if(!G.isSleeping)return;
+  G.isSleeping=false;G.sleepStart=null;G.sleepDuration=null;
+  saveG();setNotif(G.name+' si è svegliato.');renderAll();
+}
 
 // ── ABSENCE RETURN ───────────────────────────────
 function checkAbsenceReturn(){
@@ -379,11 +385,22 @@ function gameTick(){
   const now=Date.now(),dtH=Math.min((now-G.lastTickMs)/3600000,8);G.lastTickMs=now;
   const sp=getSp(),absent=isAbsent();
   if(G.isSleeping){
-    G.energy=Math.min(100,G.energy+8*dtH);G.hunger=Math.max(0,G.hunger-.5*dtH);G.thirst=Math.max(0,G.thirst-.4*dtH);G.boredom=Math.max(0,G.boredom-2*dtH);
-    if(G.energy>=100){G.isSleeping=false;G.sleepStart=null;G.sleepDuration=null;setNotif(`${G.name} si è svegliato riposato.`);}
+    const enR=sp.energyRate<1.5?14:sp.energyRate<2.5?11:8;
+    G.energy=Math.min(100,G.energy+enR*dtH);
+    G.hunger=Math.max(0,G.hunger-0.5*dtH);
+    G.thirst=Math.max(0,G.thirst-0.4*dtH);
+    G.boredom=Math.max(0,G.boredom-4*dtH);
+    G.hp=Math.min(100,G.hp+1*dtH);
+    const sleptMs=G.sleepStart?Date.now()-G.sleepStart:0;
+    if((G.sleepDuration&&sleptMs>=G.sleepDuration)||G.energy>=100){
+      G.isSleeping=false;G.sleepStart=null;G.sleepDuration=null;
+      setNotif(G.name+' si è svegliato riposato.');
+    }
   }else if(!absent){
-    G.hunger=Math.max(0,G.hunger-sp.hungerRate*(hasTrait('vuln_fame')?2:1)*dtH);
-    G.thirst=Math.max(0,G.thirst-sp.thirstRate*(hasTrait('vuln_sete')?1.8:1)*dtH);
+    // BD=4.17 → at rate 1.0, need empties in 24h real time
+    const BD=4.17;
+    G.hunger=Math.max(0,G.hunger-BD*sp.hungerRate*(hasTrait('vuln_fame')?1.6:1)*dtH);
+    G.thirst=Math.max(0,G.thirst-BD*sp.thirstRate*(hasTrait('vuln_sete')?1.6:1)*dtH);
     G.energy=Math.max(0,G.energy-sp.energyRate*dtH);
     G.boredom=Math.min(100,G.boredom+sp.boredRate*dtH);
     if(G.hunger<15||G.thirst<15)G.hp=Math.max(1,G.hp-2*dtH);
@@ -444,13 +461,36 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&G.phase==
 
 // ── FIREBASE BRIDGE ──────────────────────────────
 // Called by index.html AFTER Firebase loads the cloud save into window.G
+
+// ── SAVE MIGRATION ───────────────────────────────────────────────
+function migrateG(g){
+  if(!g) return null;
+  if(g.boredom===undefined) g.boredom=10;
+  if(g.isSleeping===undefined) g.isSleeping=false;
+  if(g.sleepStart===undefined) g.sleepStart=null;
+  if(g.sleepDuration===undefined) g.sleepDuration=null;
+  if(g.absence===undefined) g.absence=null;
+  if(g.nextCoinMs===undefined) g.nextCoinMs=Date.now()+3600000;
+  if(g.counts===undefined) g.counts={play:0,train:0,sleep:0,hunt:0,explore:0,meditate:0};
+  if(g.evoLog===undefined) g.evoLog=[];
+  if(g.unlockedTraitIds===undefined) g.unlockedTraitIds=[];
+  if(g.cooldowns===undefined) g.cooldowns={};
+  if(g.isSleeping&&!g.sleepDuration){g.isSleeping=false;g.sleepStart=null;}
+  if(g.absence&&g.absence.endsMs<Date.now()){g.absence=null;}
+  return g;
+}
+
 window.startGame = function() {
+  // Load from cloud (window.G set by Firebase) or localStorage backup or new game
   if (!window.G) {
     try { const bk=localStorage.getItem('aether_v4_bk'); window.G=bk?JSON.parse(bk):null; } catch(e){}
   }
-  G = window.G || newGame();
+  G = migrateG(window.G) || newGame();
   window.G = G;
-  boot();
+  // Fade splash then boot
+  const sp = document.getElementById('splash');
+  if (sp) { sp.classList.add('fade'); setTimeout(()=>{ sp.remove(); boot(); }, 900); }
+  else { boot(); }
 };
 
 // Expose helpers for profile modal
